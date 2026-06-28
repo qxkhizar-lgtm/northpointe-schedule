@@ -29,6 +29,7 @@
   }
 
   html { font-size: var(--fs); }
+  html, body { max-width: 100%; overflow-x: hidden; }
   body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; font-size: 1rem; }
 
   /* ── TOP BAR ── */
@@ -417,7 +418,7 @@
       position: static;
     }
     .topbar-left { width: 100%; }
-    .topbar-right { width: 100%; flex-wrap: wrap; gap: 12px 16px; justify-content: flex-start; }
+    .topbar-right { width: 100%; max-width: 100%; flex-wrap: wrap; gap: 12px 16px; justify-content: flex-start; }
 
     .tab-nav {
       position: sticky; top: 0; overflow-x: auto;
@@ -449,9 +450,9 @@
     .greeting-grid { grid-template-columns: 1fr; }
     .role-grid { grid-template-columns: repeat(2, 1fr); }
 
-    .dob-ctrl { flex: 1; min-width: 0; }
-    .dob-input { flex: 1; min-width: 100px; }
-    .font-btn, .dob-reset-btn { width: 32px; height: 32px; font-size: 13px; }
+    .dob-ctrl { width: 100%; max-width: 100%; flex-wrap: wrap; row-gap: 6px; }
+    .dob-input { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+    .font-btn, .dob-reset-btn { width: 32px; height: 32px; font-size: 13px; flex-shrink: 0; }
   }
 
   @media (max-width: 600px) {
@@ -464,6 +465,8 @@
     .loc-pill, .type-btn, .toggle-row { padding: 10px 11px; }
     .greeting-grid, .info-grid, .policy-grid { gap: 10px; }
     .pcard-body { padding: 13px; }
+    .dob-age-badge { min-width: 0; flex-shrink: 0; }
+    .dob-input { font-size: 12px; padding: 6px 7px; }
   }
 </style>
 </head>
@@ -532,16 +535,16 @@
           <option value="DM">Dr. Murad</option>
         </optgroup>
         <optgroup label="Nurse Practitioners (NP)">
-          <option value="AT">Anita Thomas</option>
-          <option value="MF">Marian Fabyan</option>
-          <option value="RB">Rauvi Blackwell</option>
-          <option value="NK">Nikki (LaSharyl Collum)</option>
-          <option value="SB">Silvia Bonilla</option>
-          <option value="RC">Rachel Childers</option>
-          <option value="BS">Bina Shah</option>
-          <option value="JM">Johnny Moore</option>
-          <option value="SS">Shelly Sanders</option>
-          <option value="MW">Michelle White</option>
+          <option value="AT">NP Anita Thomas</option>
+          <option value="MF">NP Marian Fabyan</option>
+          <option value="RB">NP Rauvi Blackwell</option>
+          <option value="NK">NP Nikki (LaSharyl Collum)</option>
+          <option value="SB">NP Silvia Bonilla</option>
+          <option value="RC">NP Rachel Childers</option>
+          <option value="BS">NP Bina Shah</option>
+          <option value="JM">NP Johnny Moore</option>
+          <option value="SS">NP Shelly Sanders</option>
+          <option value="MW">NP Michelle White</option>
         </optgroup>
         <optgroup label="Counselors / Therapists">
           <option value="BM">Bret M. Menassa</option>
