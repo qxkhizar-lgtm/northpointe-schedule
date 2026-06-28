@@ -399,6 +399,7 @@
   .policy-body strong { color: var(--text); font-weight: 600; }
 
   .role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .loc-ivr-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
   .role-card {
     background: white; border: 1px solid var(--border); border-radius: var(--radius);
     padding: 14px 15px; box-shadow: var(--shadow); text-align: center;
@@ -406,6 +407,64 @@
   .role-dot { width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 8px; }
   .role-title { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
   .role-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
+
+  /* ══════════ RESPONSIVE — TABLETS & MOBILE ══════════ */
+  .mobile-filter-toggle { display: none; }
+
+  @media (max-width: 900px) {
+    .topbar {
+      flex-wrap: wrap; height: auto; padding: 12px 16px; row-gap: 10px;
+      position: static;
+    }
+    .topbar-left { width: 100%; }
+    .topbar-right { width: 100%; flex-wrap: wrap; gap: 12px 16px; justify-content: flex-start; }
+
+    .tab-nav {
+      position: sticky; top: 0; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+
+    .schedule-tab { flex-direction: column; }
+    .mobile-filter-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; background: var(--sidebar); color: white; border: none;
+      border-bottom: 1px solid #1E293B; position: sticky; top: 45px; z-index: 150;
+      padding: 13px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .mf-chevron { transition: transform 0.2s; }
+    .mobile-filter-toggle.open .mf-chevron { transform: rotate(180deg); }
+
+    .sidebar {
+      display: none; position: static; width: 100%; height: auto;
+      max-height: 65vh; overflow-y: auto; top: auto;
+    }
+    .sidebar.mobile-open { display: block; }
+
+    .main { padding: 16px; }
+    .info-main { padding: 18px 16px; gap: 20px; }
+
+    .loc-ivr-grid { grid-template-columns: 1fr; }
+    .greeting-grid { grid-template-columns: 1fr; }
+    .role-grid { grid-template-columns: repeat(2, 1fr); }
+
+    .dob-ctrl { flex: 1; min-width: 0; }
+    .dob-input { flex: 1; min-width: 100px; }
+    .font-btn, .dob-reset-btn { width: 32px; height: 32px; font-size: 13px; }
+  }
+
+  @media (max-width: 600px) {
+    .provider-grid { grid-template-columns: 1fr; }
+    .role-grid { grid-template-columns: 1fr; }
+    .topbar-title { font-size: 14px; }
+    .topbar-sub { font-size: 10px; }
+    .stat-num { font-size: 17px; }
+    .day-btn { font-size: 10px; padding: 9px 0; }
+    .loc-pill, .type-btn, .toggle-row { padding: 10px 11px; }
+    .greeting-grid, .info-grid, .policy-grid { gap: 10px; }
+    .pcard-body { padding: 13px; }
+  }
 </style>
 </head>
 <body>
@@ -457,6 +516,10 @@
 
 <!-- SCHEDULE TAB -->
 <div class="schedule-tab" id="tab-schedule">
+  <button class="mobile-filter-toggle" id="mobileFilterToggle" onclick="toggleMobileFilters()">
+    <span>🔍 Filters & Provider Lookup</span>
+    <span class="mf-chevron">▼</span>
+  </button>
   <aside class="sidebar">
 
     <!-- Provider Quick Lookup -->
@@ -469,16 +532,16 @@
           <option value="DM">Dr. Murad</option>
         </optgroup>
         <optgroup label="Nurse Practitioners (NP)">
-          <option value="AT">Anita Thomas</option>
-          <option value="MF">Marian Fabyan</option>
-          <option value="RB">Rauvi Blackwell</option>
-          <option value="NK">Nikki (LaSharyl Collum)</option>
-          <option value="SB">Silvia Bonilla</option>
-          <option value="RC">Rachel Childers</option>
-          <option value="BS">Bina Shah</option>
-          <option value="JM">Johnny Moore</option>
-          <option value="SS">Shelly Sanders</option>
-          <option value="MW">Michelle White</option>
+          <option value="AT">NP Anita Thomas</option>
+          <option value="MF">NP Marian Fabyan</option>
+          <option value="RB">NP Rauvi Blackwell</option>
+          <option value="NK">NP Nikki (LaSharyl Collum)</option>
+          <option value="SB">NP Silvia Bonilla</option>
+          <option value="RC">NP Rachel Childers</option>
+          <option value="BS">NP Bina Shah</option>
+          <option value="JM">NP Johnny Moore</option>
+          <option value="SS">NP Shelly Sanders</option>
+          <option value="MW">NP Michelle White</option>
         </optgroup>
         <optgroup label="Counselors / Therapists">
           <option value="BM">Bret M. Menassa</option>
@@ -625,13 +688,13 @@
             <div><div class="pcard-name">NP Marian Fabyan</div><div class="pcard-role">Nurse Practitioner · Age 15+</div></div>
           </div>
           <div class="badge-row">
-            <span class="badge badge-green">✓ Accepting new on Thursday</span>
+            <span class="badge badge-green">✓ Accepting new</span>
             <span class="badge badge-gray">No double book</span>
           </div>
           <div class="schedule-block">
             <div class="schedule-row"><span class="loc-tag dn" data-tag="dn">DN</span><span class="schedule-text">Mon – Fri — 10:30 am to 5:00 pm</span></div>
           </div>
-          <div class="note-box">New female pts also Mon/Tue/Wed at 5 pm · No male pts after 4 pm Thu </div>
+          <div class="note-box">New pts Thursdays only · No male pts after 4 pm Thu · New female pts also Mon/Tue/Wed at 5 pm</div>
         </div>
         <div class="pcard-footer">
           <span class="appt-tag">⏱ Follow-up: 15 min</span>
@@ -908,7 +971,7 @@
         <div class="pcard-body">
           <div class="pcard-header">
             <div class="pcard-avatar cn">RI</div>
-            <div><div class="pcard-name">Richard Climer</div><div class="pcard-role">Counselor · Age 13+ · Effective. 07-06-2026</div></div>
+            <div><div class="pcard-name">Richard Climer</div><div class="pcard-role">Counselor · Age 13+ · Eff. 07-06-2026</div></div>
           </div>
           <div class="badge-row">
             <span class="badge badge-green">✓ Accepting new</span>
@@ -966,37 +1029,26 @@
       </div>
     </div>
 
-    <!-- Locations -->
-    <div>
-      <div class="info-section-title">📍 Office Locations</div>
-      <div class="info-grid">
-        <div class="loc-card">
-          <div class="loc-card-head"><div class="loc-color-dot" style="background:#10B981;"></div><div class="loc-card-name">Lewisville</div></div>
-          <div class="loc-card-addr">860 Hebron Pkwy, Suite 1101<br>Lewisville, TX 75057</div>
-          <div class="loc-card-ivr">📱 IVR → Press <strong>2</strong></div>
-        </div>
-        <div class="loc-card">
-          <div class="loc-card-head"><div class="loc-color-dot" style="background:#3B82F6;"></div><div class="loc-card-name">Flower Mound</div></div>
-          <div class="loc-card-addr">4491 Long Prairie Rd, Suite 600<br>Flower Mound, TX 75028</div>
-          <div class="loc-card-ivr">📱 IVR → Press <strong>3</strong></div>
-        </div>
-        <div class="loc-card">
-          <div class="loc-card-head"><div class="loc-color-dot" style="background:#F59E0B;"></div><div class="loc-card-name">Denton</div></div>
-          <div class="loc-card-addr">4212 N Interstate 35<br>Denton, TX 76207</div>
-          <div class="loc-card-ivr">📱 IVR → Press <strong>4</strong></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Contact & IVR -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <!-- Locations & IVR -->
+    <div class="loc-ivr-grid">
       <div>
-        <div class="info-section-title">📬 Contact & Hours</div>
+        <div class="info-section-title">📍 Office Locations</div>
         <div class="info-grid">
-		  <div class="info-card"><div class="info-card-label">Office Hours</div><div class="info-card-val">Mon–Thu: 9 am – 5 pm</div><div class="info-card-sub">Friday: 9 am – 2 pm</div></div> 
-          <div class="info-card"><div class="info-card-label">Office Phone</div><div class="info-card-val">469-444-2244</div></div>
-          <div class="info-card"><div class="info-card-label">Fax</div><div class="info-card-val">214-488-1200</div></div>
-          <div class="info-card"><div class="info-card-label">Email</div><div class="info-card-val" style="font-size:0.85rem;">office@northpointepsych.com</div></div>
+          <div class="loc-card">
+            <div class="loc-card-head"><div class="loc-color-dot" style="background:#10B981;"></div><div class="loc-card-name">Lewisville</div></div>
+            <div class="loc-card-addr">860 Hebron Pkwy, Suite 1101<br>Lewisville, TX 75057</div>
+            <div class="loc-card-ivr">📱 IVR → Press <strong>2</strong></div>
+          </div>
+          <div class="loc-card">
+            <div class="loc-card-head"><div class="loc-color-dot" style="background:#3B82F6;"></div><div class="loc-card-name">Flower Mound</div></div>
+            <div class="loc-card-addr">4491 Long Prairie Rd, Suite 600<br>Flower Mound, TX 75028</div>
+            <div class="loc-card-ivr">📱 IVR → Press <strong>3</strong></div>
+          </div>
+          <div class="loc-card">
+            <div class="loc-card-head"><div class="loc-color-dot" style="background:#F59E0B;"></div><div class="loc-card-name">Denton</div></div>
+            <div class="loc-card-addr">4212 N Interstate 35<br>Denton, TX 76207</div>
+            <div class="loc-card-ivr">📱 IVR → Press <strong>4</strong></div>
+          </div>
         </div>
       </div>
       <div>
@@ -1011,6 +1063,17 @@
             <tr><td><span class="ivr-press">5</span></td><td>Office manager</td></tr>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- Contact & Hours -->
+    <div>
+      <div class="info-section-title">📬 Contact & Hours</div>
+      <div class="info-grid">
+		  <div class="info-card"><div class="info-card-label">Office Hours</div><div class="info-card-val">Mon–Thu: 9 am – 5 pm</div><div class="info-card-sub">Friday: 9 am – 2 pm</div></div> 
+        <div class="info-card"><div class="info-card-label">Office Phone</div><div class="info-card-val">469-444-2244</div></div>
+        <div class="info-card"><div class="info-card-label">Fax</div><div class="info-card-val">214-488-1200</div></div>
+        <div class="info-card"><div class="info-card-label">Email</div><div class="info-card-val" style="font-size:0.85rem;">office@northpointepsych.com</div></div>
       </div>
     </div>
 
@@ -1319,6 +1382,12 @@ function onDatePick(input) {
   const d = new Date(input.value + 'T00:00:00');
   state.date = DAY_MAP[d.getDay()];
   applyFilters();
+}
+function toggleMobileFilters() {
+  const sb = document.querySelector('.sidebar');
+  const btn = document.getElementById('mobileFilterToggle');
+  sb.classList.toggle('mobile-open');
+  btn.classList.toggle('open');
 }
 function resetDob() {
   document.getElementById('dobInput').value = '';
