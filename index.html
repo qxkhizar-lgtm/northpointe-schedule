@@ -651,7 +651,7 @@
     font-size: 12px; color: #64748B; background: none; border: none;
     cursor: pointer; text-decoration: underline; padding: 0;
   }
-  .cl-section-title { font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.08em; }
+  .cl-section-title { font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
   .cl-type-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
   .cl-type-btn {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -670,8 +670,8 @@
     font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
   }
   .cl-chevron { font-size: 12px; }
-  .cl-dashboard { display: flex; flex-direction: column; gap: 16px; }
-  .cl-range-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cl-dashboard { display: flex; flex-direction: column; gap: 22px; padding-top: 14px; }
+  .cl-range-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
   .cl-range-pill {
     padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
     background: white; color: var(--text); font-size: 12px; font-weight: 600;
@@ -684,6 +684,16 @@
     font-size: 12px; cursor: pointer; transition: all 0.15s;
   }
   .cl-refresh-btn:hover { background: #F1F5F9; }
+  .cl-live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #10B981; flex-shrink: 0;
+    animation: livePulse 2s infinite;
+  }
+  @keyframes livePulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.85); }
+  }
+  .cl-last-updated { font-size: 11px; color: #94A3B8; white-space: nowrap; }
   .cl-custom-range { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 10px 0 2px; }
   .cl-date-input {
     border: 1.5px solid var(--border); border-radius: 8px; padding: 7px 10px;
@@ -700,7 +710,7 @@
   .cl-card-num { font-size: 30px; font-weight: 700; color: var(--text); }
   .cl-total .cl-card-num { color: #0F172A; }
   .cl-card-label { font-size: 11px; color: #64748B; font-weight: 600; margin-top: 4px; }
-  .cl-subsection-title { font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+  .cl-subsection-title { font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 8px; margin-bottom: 4px; }
   .cl-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); }
   .cl-table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; }
   .cl-table th { background: #F8FAFC; color: #64748B; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -1654,6 +1664,8 @@
         <button class="cl-range-pill" data-range="month" onclick="setDashRange('month', this)">This Month</button>
         <button class="cl-range-pill" data-range="all" onclick="setDashRange('all', this)">All Time</button>
         <button class="cl-range-pill" data-range="custom" onclick="setDashRange('custom', this)">Custom Range</button>
+        <span class="cl-live-dot" id="clLiveDot" title="Auto-refreshing every 15 seconds"></span>
+        <span class="cl-last-updated" id="clLastUpdated"></span>
         <button class="cl-refresh-btn" id="clRefreshBtn" onclick="loadDashboard(true)" title="Refresh">⟳ Refresh</button>
         <button class="cl-refresh-btn" onclick="downloadExcel()" title="Download styled Excel file" style="background:#ECFDF5;border-color:#6EE7B7;color:#065F46;">⬇ Download Excel</button>
       </div>
@@ -2637,7 +2649,14 @@ function toggleDashboard() {
   const isHidden = d.style.display === 'none';
   d.style.display = isHidden ? 'block' : 'none';
   if (btn) btn.textContent = isHidden ? '▲' : '▼';
-  if (isHidden) loadDashboard(false);
+  if (isHidden) {
+    loadDashboard(false);
+    // Auto-refresh every 30 seconds while dashboard is open
+    clPollingTimer = setInterval(() => loadDashboard(true), 8000);
+  } else {
+    clearInterval(clPollingTimer);
+    clPollingTimer = null;
+  }
 }
 
 function setDashRange(range, btn) {
@@ -2678,6 +2697,7 @@ async function loadDashboard(forceRefresh) {
     clearTimeout(timer);
     const data = await res.json();
     if (Array.isArray(data)) {
+      const prevCount = clAllEntries.length;
       clAllEntries  = data;
       clLastFetched = Date.now();
       try {
@@ -2685,6 +2705,15 @@ async function loadDashboard(forceRefresh) {
         localStorage.setItem('cl_cacheTs', String(clLastFetched));
       } catch(e) {}
       renderDashboard();
+      // Update last-updated label
+      const luEl = document.getElementById('clLastUpdated');
+      if (luEl) luEl.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'});
+      // Flash dot green if new entries arrived
+      const dot = document.getElementById('clLiveDot');
+      if (dot && data.length > prevCount) {
+        dot.style.background = '#F59E0B';
+        setTimeout(() => { dot.style.background = '#10B981'; }, 1500);
+      }
     }
   } catch(err) {
     if (!clAllEntries.length) {
@@ -2827,97 +2856,77 @@ function downloadExcel() {
 function buildAndDownloadExcel() {
   const filtered = filterByRange(clAllEntries, clDashRange);
   if (!filtered.length) { alert('No entries found for the selected date range.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded. Check internet and try again.'); return; }
 
   const TYPES = [
-    { key: 'Follow-up',           label: 'Follow-up'         },
-    { key: 'Reschedule',          label: 'Reschedule'        },
-    { key: 'New Patient',         label: 'New Patient'       },
-    { key: 'Cancelled',           label: 'Cancelled'         },
-    { key: 'Other / Transferred', label: 'Other-Transferred' }
+    { key: 'Follow-up',           label: 'Follow-up'        },
+    { key: 'Reschedule',          label: 'Reschedule'       },
+    { key: 'New Patient',         label: 'New Patient'      },
+    { key: 'Cancelled',           label: 'Cancelled'        },
+    { key: 'Other / Transferred', label: 'Other-Transferred'}
   ];
-  const typeColors = {
-    'Follow-up':           '#3B82F6',
-    'Reschedule':          '#F59E0B',
-    'New Patient':         '#10B981',
-    'Cancelled':           '#EF4444',
-    'Other / Transferred': '#8B5CF6'
-  };
 
-  // Strip emojis and XML-unsafe characters
-  const clean = s => String(s == null ? '' : s)
-    .replace(/[\u{1F000}-\u{1FFFF}]|[\u2600-\u27FF]|[\uFE00-\uFE0F]/gu, '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-    .trim();
+  // Columns: Phone, DOB, Provider, Location, Insurance, Note
+  const HEADERS    = ['Phone', 'Date of Birth', 'Provider', 'Location', 'Insurance', 'Note'];
+  const COL_WIDTHS = [16, 14, 22, 16, 20, 28];
 
-  const COLS = ['Time (TX)','Staff','Type','Phone','DOB','Provider','Location','Insurance','Note'];
-
-  function xmlCell(val, styleId) {
-    const s = styleId ? ` ss:StyleID="${styleId}"` : '';
-    return `<Cell${s}><Data ss:Type="String">${clean(val)}</Data></Cell>`;
+  function toRows(entries) {
+    return [...entries]
+      .sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp))
+      .map(e => [
+        e.phone    || '',
+        formatDob(e.dob) || '',
+        e.provider || '',
+        e.location || '',
+        e.insurance|| '',
+        e.note     || ''
+      ]);
   }
 
-  function makeWorksheet(sheetName, entries) {
-    const sorted = [...entries].sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
-    const headerRow = '<Row ss:StyleID="hdr">' + COLS.map(c => xmlCell(c)).join('') + '</Row>';
-    const dataRows = sorted.map(e => {
-      const d = new Date(e.timestamp);
-      const t = isNaN(d) ? (e.timestamp||'') : d.toLocaleString('en-US',{
-        timeZone:'America/Chicago', month:'short', day:'numeric',
-        year:'numeric', hour:'numeric', minute:'2-digit'
-      });
-      const typeStyle = 'tc_' + (e.type||'').replace(/[^a-zA-Z]/g,'_');
-      return `<Row>
-        ${xmlCell(t)}
-        ${xmlCell(e.staff,'bold')}
-        ${xmlCell(e.type, typeStyle)}
-        ${xmlCell(e.phone)}
-        ${xmlCell(formatDob(e.dob))}
-        ${xmlCell(e.provider)}
-        ${xmlCell(e.location)}
-        ${xmlCell(e.insurance)}
-        ${xmlCell(e.note)}
-      </Row>`;
-    }).join('');
-
-    return `<Worksheet ss:Name="${clean(sheetName)}">
-  <Table ss:DefaultColumnWidth="110">
-    <Column ss:Width="160"/><Column ss:Width="85"/><Column ss:Width="120"/>
-    <Column ss:Width="115"/><Column ss:Width="95"/><Column ss:Width="145"/>
-    <Column ss:Width="115"/><Column ss:Width="130"/><Column ss:Width="165"/>
-    ${headerRow}${dataRows}
-  </Table>
-</Worksheet>`;
+  function makeSheet(entries, sheetLabel) {
+    const genDate = new Date().toLocaleDateString('en-US',{timeZone:'America/Chicago',month:'long',day:'numeric',year:'numeric'});
+    // Row 1: Report title, Row 2: Sheet label + date, Row 3: blank, Row 4: headers, Row 5+: data
+    const titleRow  = [`NorthPointe Psychiatry — Call Log`, '', '', '', '', ''];
+    const subRow    = [sheetLabel, '', '', `Generated: ${genDate}`, '', ''];
+    const blankRow  = ['','','','','',''];
+    const rows      = toRows(entries);
+    const ws = XLSX.utils.aoa_to_sheet([titleRow, subRow, blankRow, HEADERS, ...rows]);
+    ws['!cols'] = COL_WIDTHS.map(w => ({ wch: w }));
+    // Merge title across all columns
+    ws['!merges'] = [
+      { s:{r:0,c:0}, e:{r:0,c:5} },
+      { s:{r:1,c:0}, e:{r:1,c:2} },
+      { s:{r:1,c:3}, e:{r:1,c:5} }
+    ];
+    return ws;
   }
 
-  // Type color styles
-  const typeStyleDefs = Object.entries(typeColors).map(([k,c]) =>
-    `<Style ss:ID="tc_${k.replace(/[^a-zA-Z]/g,'_')}">
-      <Font ss:Color="${c}" ss:Bold="1" ss:Size="11" ss:Name="Calibri"/>
-    </Style>`
-  ).join('');
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles>
-  <Style ss:ID="hdr">
-    <Alignment ss:Horizontal="Left"/>
-    <Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="11" ss:Name="Calibri"/>
-    <Interior ss:Color="#0F172A" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="bold">
-    <Font ss:Bold="1" ss:Size="11" ss:Name="Calibri"/>
-  </Style>
-  ${typeStyleDefs}
-</Styles>
-${makeWorksheet('All Calls', filtered)}
-${TYPES.map(t => makeWorksheet(t.label, filtered.filter(e => e.type === t.key))).join('\n')}
-</Workbook>`;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, makeSheet(filtered, 'All Calls'), 'All Calls');
+  TYPES.forEach(t => {
+    const entries = filtered.filter(e => e.type === t.key);
+    XLSX.utils.book_append_sheet(wb, makeSheet(entries, t.label), t.label);
+  });
 
   const dateTag = new Date().toLocaleDateString('en-CA',{timeZone:'America/Chicago'});
-  saveAs(new Blob([xml], {type:'application/vnd.ms-excel;charset=utf-8'}),
-    `NorthPointe_CallLog_${dateTag}.xls`);
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  const blob  = new Blob([wbout], {type:'application/octet-stream'});
+  const fname = `NorthPointe_CallLog_${dateTag}.xlsx`;
+  // Try saveAs first, fallback to object URL
+  try {
+    if (typeof saveAs !== 'undefined') {
+      saveAs(blob, fname);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url; a.download = fname; a.style.display = 'none';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+    }
+  } catch(err) {
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }
 }
 
 // ── Silently preload Call Log data 2s after page load ──
