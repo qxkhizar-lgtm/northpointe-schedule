@@ -750,12 +750,19 @@
 
   /* Call entry modal */
   .cl-modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-    z-index: 8000; display: flex; align-items: center; justify-content: center;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 8000; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 16px; box-sizing: border-box;
   }
   .cl-modal-box {
     background: white; border-radius: 14px; padding: 28px 26px;
-    max-width: 420px; width: 92%; box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+    width: 100%; max-width: 420px;
+    margin: auto;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+    max-height: 90vh; overflow-y: auto;
+    position: relative;
   }
   .cl-modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 18px; }
   .cl-field-label { display: block; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
@@ -836,11 +843,8 @@
     .cl-table td:nth-child(1) { font-weight: 600; }
 
     /* Modal: centered on mobile */
-    .cl-modal-overlay { align-items: center; padding: 16px; }
-    .cl-modal-box {
-      width: 100%; max-width: 420px; border-radius: 14px;
-      padding: 22px 18px 26px; max-height: 92vh; overflow-y: auto;
-    }
+    .cl-modal-overlay { padding: 12px; }
+    .cl-modal-box { padding: 20px 16px 24px; margin: auto; }
     .cl-modal-title { font-size: 16px; margin-bottom: 14px; }
     .cl-select, .cl-text-input { padding: 11px 12px; font-size: 14px; }
     .cl-modal-actions { gap: 8px; }
@@ -2859,61 +2863,78 @@ function buildAndDownloadExcel() {
   if (typeof XLSX === 'undefined') { alert('Excel library not loaded. Check internet and try again.'); return; }
 
   const TYPES = [
-    { key: 'Follow-up',           label: 'Follow-up'        },
-    { key: 'Reschedule',          label: 'Reschedule'       },
-    { key: 'New Patient',         label: 'New Patient'      },
-    { key: 'Cancelled',           label: 'Cancelled'        },
+    { key: 'Follow-up',           label: 'Follow-up'         },
+    { key: 'Reschedule',          label: 'Reschedule'        },
+    { key: 'New Patient',         label: 'New Patient'       },
+    { key: 'Cancelled',           label: 'Cancelled'         },
     { key: 'Other / Transferred', label: 'Other-Transferred'}
   ];
 
-  // Columns: Phone, DOB, Provider, Location, Insurance, Note
-  const HEADERS    = ['Phone', 'Date of Birth', 'Provider', 'Location', 'Insurance', 'Note'];
-  const COL_WIDTHS = [16, 14, 22, 16, 20, 28];
+  const COLS      = ['Phone', 'Date of Birth', 'Provider', 'Location', 'Insurance', 'Note'];
+  const COL_W     = [18, 15, 24, 16, 22, 30];
 
-  function toRows(entries) {
+  const rangeLabels = { today:'Today', yesterday:'Yesterday', week:'This Week', month:'This Month', all:'All Time', custom:'Custom Range' };
+  const rangeLabel  = rangeLabels[clDashRange] || 'Selected Range';
+  const genTime     = new Date().toLocaleString('en-US', {
+    timeZone:'America/Chicago', weekday:'long', month:'long',
+    day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'
+  });
+  const dateTag = new Date().toLocaleDateString('en-CA', { timeZone:'America/Chicago' });
+
+  function sortedRows(entries) {
     return [...entries]
-      .sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .map(e => [
-        e.phone    || '',
+        e.phone      || '',
         formatDob(e.dob) || '',
-        e.provider || '',
-        e.location || '',
-        e.insurance|| '',
-        e.note     || ''
+        e.provider   || '',
+        e.location   || '',
+        e.insurance  || '',
+        e.note       || ''
       ]);
   }
 
-  function makeSheet(entries, sheetLabel) {
-    const genDate = new Date().toLocaleDateString('en-US',{timeZone:'America/Chicago',month:'long',day:'numeric',year:'numeric'});
-    // Row 1: Report title, Row 2: Sheet label + date, Row 3: blank, Row 4: headers, Row 5+: data
-    const titleRow  = [`NorthPointe Psychiatry — Call Log`, '', '', '', '', ''];
-    const subRow    = [sheetLabel, '', '', `Generated: ${genDate}`, '', ''];
-    const blankRow  = ['','','','','',''];
-    const rows      = toRows(entries);
-    const ws = XLSX.utils.aoa_to_sheet([titleRow, subRow, blankRow, HEADERS, ...rows]);
-    ws['!cols'] = COL_WIDTHS.map(w => ({ wch: w }));
-    // Merge title across all columns
-    ws['!merges'] = [
-      { s:{r:0,c:0}, e:{r:0,c:5} },
-      { s:{r:1,c:0}, e:{r:1,c:2} },
-      { s:{r:1,c:3}, e:{r:1,c:5} }
+  function makeSheet(entries, typeName) {
+    const data = [
+      // ── Header block ──
+      ['NorthPointe Psychiatry'],
+      ['Provider Schedule & Call Log Tool'],
+      [''],
+      ['Report Type:', typeName],
+      ['Period:', rangeLabel],
+      ['Total Records:', entries.length],
+      ['Generated:', genTime],
+      [''],
+      // ── Column headers ──
+      COLS,
+      // ── Data rows ──
+      ...sortedRows(entries)
     ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = COL_W.map(w => ({ wch: w }));
+
+    // Merge title rows across all 6 columns
+    ws['!merges'] = [
+      { s:{r:0,c:0}, e:{r:0,c:5} }, // Practice name
+      { s:{r:1,c:0}, e:{r:1,c:5} }, // Tool name
+    ];
+
     return ws;
   }
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, makeSheet(filtered, 'All Calls'), 'All Calls');
-  TYPES.forEach(t => {
-    const entries = filtered.filter(e => e.type === t.key);
-    XLSX.utils.book_append_sheet(wb, makeSheet(entries, t.label), t.label);
-  });
-
-  const dateTag = new Date().toLocaleDateString('en-CA',{timeZone:'America/Chicago'});
-  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-  const blob  = new Blob([wbout], {type:'application/octet-stream'});
-  const fname = `NorthPointe_CallLog_${dateTag}.xlsx`;
-  // Try saveAs first, fallback to object URL
   try {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, makeSheet(filtered, 'All Calls'), 'All Calls');
+    TYPES.forEach(t => {
+      const entries = filtered.filter(e => e.type === t.key);
+      XLSX.utils.book_append_sheet(wb, makeSheet(entries, t.label), t.label);
+    });
+
+    const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+    const blob  = new Blob([wbout], { type:'application/octet-stream' });
+    const fname = `NorthPointe_CallLog_${dateTag}.xlsx`;
+
     if (typeof saveAs !== 'undefined') {
       saveAs(blob, fname);
     } else {
@@ -2924,8 +2945,7 @@ function buildAndDownloadExcel() {
       setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
     }
   } catch(err) {
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    alert('Export failed: ' + err.message + '\nPlease try again.');
   }
 }
 
